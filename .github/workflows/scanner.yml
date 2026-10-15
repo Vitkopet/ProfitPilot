@@ -33,6 +33,16 @@ jobs:
         env:
           GOOGLE_DRIVE_AUTH_JSON: ${{ secrets.GOOGLE_DRIVE_AUTH_JSON }}
         run: python drive_upload.py
+      - name: Show Drive archive status
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os, pathlib
+          path = pathlib.Path('reports/drive_status.json')
+          status = json.loads(path.read_text())['status'] if path.exists() else 'NO_UPLOAD_ATTEMPT'
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('## Google Drive archive\n\nStatus: **' + status + '**\n')
+          PY
       - name: Save report
         if: always()
         uses: actions/upload-artifact@v4
