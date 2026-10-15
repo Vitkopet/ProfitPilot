@@ -1,6 +1,8 @@
 name: AICH Acceleration test
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '2-59/5 * * * *'
   push:
     paths:
       - 'acceleration.py'
@@ -31,4 +33,4 @@ jobs:
           name: acceleration-report-${{ github.run_id }}
           path: reports/
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 7
