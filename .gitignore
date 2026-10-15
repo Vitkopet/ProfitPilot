@@ -1,0 +1,6 @@
+__pycache__/
+reports/
+private_google/
+client_secret*.json
+*drive_auth*.json
+.env

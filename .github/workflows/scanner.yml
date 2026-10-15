@@ -8,6 +8,8 @@ on:
       - 'acceleration.py'
       - 'test_acceleration.py'
       - '.github/workflows/scanner.yml'
+      - 'drive_upload.py'
+      - 'test_drive_upload.py'
 permissions:
   contents: read
 concurrency:
@@ -26,6 +28,11 @@ jobs:
         run: python -m unittest -v
       - name: Scan public markets
         run: python acceleration.py --limit 50
+      - name: Archive report to Google Drive
+        if: ${{ always() && hashFiles('reports/latest.json') != '' }}
+        env:
+          GOOGLE_DRIVE_AUTH_JSON: ${{ secrets.GOOGLE_DRIVE_AUTH_JSON }}
+        run: python drive_upload.py
       - name: Save report
         if: always()
         uses: actions/upload-artifact@v4
