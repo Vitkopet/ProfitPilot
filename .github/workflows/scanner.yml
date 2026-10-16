@@ -2,7 +2,7 @@ name: AICH Acceleration test
 on:
   workflow_dispatch:
   schedule:
-    - cron: '2-59/5 * * * *'
+    - cron: '*/5 * * * *'
   push:
     paths:
       - 'acceleration.py'
@@ -24,6 +24,59 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Schedule diagnostics
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SCHEDULE_CRON: ${{ github.event.schedule }}
+        run: |
+          python - <<'PY'
+          import datetime as dt
+          import json
+          import os
+          import pathlib
+          import urllib.request
+
+          now = dt.datetime.now(dt.timezone.utc)
+          data = {
+              "event": os.environ["GITHUB_EVENT_NAME"],
+              "cron": os.environ.get("SCHEDULE_CRON", ""),
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "diagnostic_step_at_utc": now.isoformat(),
+              "workflow_run_created_at_utc": None,
+              "created_to_diagnostic_seconds": None,
+          }
+          try:
+              url = ("https://api.github.com/repos/"
+                     + os.environ["GITHUB_REPOSITORY"]
+                     + "/actions/runs/" + os.environ["GITHUB_RUN_ID"])
+              req = urllib.request.Request(url, headers={
+                  "Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                  "Accept": "application/vnd.github+json",
+                  "User-Agent": "ProfitPilot-schedule-diagnostics",
+              })
+              with urllib.request.urlopen(req, timeout=15) as response:
+                  run = json.load(response)
+              created = dt.datetime.fromisoformat(run["created_at"].replace("Z", "+00:00"))
+              data["workflow_run_created_at_utc"] = created.isoformat()
+              data["created_to_diagnostic_seconds"] = round((now - created).total_seconds(), 1)
+          except Exception as exc:
+              data["github_api_error"] = type(exc).__name__
+          pathlib.Path("reports").mkdir(exist_ok=True)
+          pathlib.Path("reports/schedule_diagnostics.json").write_text(
+              json.dumps(data, indent=2) + "\\n", encoding="utf-8"
+          )
+          print(json.dumps(data, indent=2))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("## Schedule diagnostics\\n\\n")
+              summary.write("- Event: `" + data["event"] + "`\\n")
+              summary.write("- Cron: `" + data["cron"] + "`\\n")
+              summary.write("- Run created UTC: `" + str(data["workflow_run_created_at_utc"]) + "`\\n")
+              summary.write("- Diagnostic step UTC: `" + data["diagnostic_step_at_utc"] + "`\\n")
+              summary.write("- Startup delay (created to diagnostic step): `"
+                            + str(data["created_to_diagnostic_seconds"]) + "s`\\n")
+              summary.write("\\nMissing scheduled runs must be identified by comparing run timestamps across runs.\\n")
+          PY
       - name: Unit tests
         run: python -m unittest -v
       - name: Scan public markets
