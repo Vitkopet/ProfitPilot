@@ -64,18 +64,18 @@ jobs:
               data["github_api_error"] = type(exc).__name__
           pathlib.Path("reports").mkdir(exist_ok=True)
           pathlib.Path("reports/schedule_diagnostics.json").write_text(
-              json.dumps(data, indent=2) + "\\n", encoding="utf-8"
+              json.dumps(data, indent=2) + "\n", encoding="utf-8"
           )
           print(json.dumps(data, indent=2))
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
-              summary.write("## Schedule diagnostics\\n\\n")
-              summary.write("- Event: `" + data["event"] + "`\\n")
-              summary.write("- Cron: `" + data["cron"] + "`\\n")
-              summary.write("- Run created UTC: `" + str(data["workflow_run_created_at_utc"]) + "`\\n")
-              summary.write("- Diagnostic step UTC: `" + data["diagnostic_step_at_utc"] + "`\\n")
+              summary.write("## Schedule diagnostics\n\n")
+              summary.write("- Event: `" + data["event"] + "`\n")
+              summary.write("- Cron: `" + data["cron"] + "`\n")
+              summary.write("- Run created UTC: `" + str(data["workflow_run_created_at_utc"]) + "`\n")
+              summary.write("- Diagnostic step UTC: `" + data["diagnostic_step_at_utc"] + "`\n")
               summary.write("- Startup delay (created to diagnostic step): `"
-                            + str(data["created_to_diagnostic_seconds"]) + "s`\\n")
-              summary.write("\\nMissing scheduled runs must be identified by comparing run timestamps across runs.\\n")
+                            + str(data["created_to_diagnostic_seconds"]) + "s`\n")
+              summary.write("\nMissing scheduled runs must be identified by comparing run timestamps across runs.\n")
           PY
       - name: Unit tests
         run: python -m unittest -v
